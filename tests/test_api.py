@@ -1,5 +1,6 @@
 """Tests for the API endpoints."""
 
+from unittest.mock import patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -103,8 +104,9 @@ async def test_webhook_verify_missing_params():
 async def test_webhook_post_empty_body():
     """Webhook POST with an empty entry should return ok."""
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/webhook", json={"entry": []})
+    with patch("app.api.webhooks.whatsapp_client.verify_signature", return_value=True):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post("/webhook", json={"entry": []})
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
