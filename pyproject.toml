@@ -1,0 +1,9 @@
+[project]
+name = "bheem"
+version = "1.0.0"
+description = "WhatsApp AI Customer Support Chatbot for Placement & Training Services"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

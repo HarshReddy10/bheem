@@ -1,0 +1,102 @@
+PLACEMENT & TRAINING SERVICES — FREQUENTLY ASKED QUESTIONS
+==========================================================
+
+ABOUT US
+--------
+We are a leading Placement & Training Services provider dedicated to bridging
+the gap between education and industry. Our mission is to equip students and
+professionals with the skills they need to succeed in today's competitive job
+market.
+
+TRAINING PROGRAMS
+-----------------
+Q: What training programs do you offer?
+A: We offer a comprehensive range of training programs including:
+   - Full Stack Web Development (12 weeks)
+   - Data Science & Machine Learning (16 weeks)
+   - Cloud Computing & DevOps (10 weeks)
+   - Digital Marketing (8 weeks)
+   - Soft Skills & Communication (4 weeks)
+   - Interview Preparation & Resume Building (2 weeks)
+
+Q: What is the format of the training?
+A: Our training programs include a mix of:
+   - Live instructor-led sessions
+   - Hands-on projects and assignments
+   - Industry case studies
+   - Mock interviews and group discussions
+   - Mentorship from industry professionals
+
+Q: Do you provide certificates?
+A: Yes, upon successful completion of any training program, participants
+   receive an industry-recognized certificate of completion.
+
+PLACEMENT SERVICES
+------------------
+Q: How does the placement process work?
+A: Our placement process follows these steps:
+   1. Skills assessment and profile building
+   2. Resume optimization and portfolio review
+   3. Company matching based on skills and preferences
+   4. Interview scheduling and preparation
+   5. Offer negotiation support
+   6. Post-placement follow-up
+
+Q: What is your placement success rate?
+A: We are proud to maintain a placement success rate of over 85% for
+   candidates who complete our training programs and actively participate
+   in the placement process.
+
+Q: Which companies do you partner with?
+A: We partner with over 200+ companies across various industries including
+   IT, finance, healthcare, e-commerce, and consulting. Our partner companies
+   range from startups to Fortune 500 corporations.
+
+FEES & PAYMENT
+--------------
+Q: What is the fee structure?
+A: Fees vary by program:
+   - Full Stack Web Development: ₹45,000
+   - Data Science & Machine Learning: ₹55,000
+   - Cloud Computing & DevOps: ₹40,000
+   - Digital Marketing: ₹30,000
+   - Soft Skills & Communication: ₹15,000
+   - Interview Preparation: ₹10,000
+
+Q: Do you offer any discounts?
+A: Yes, we offer:
+   - 10% early bird discount for registrations 30 days in advance
+   - 15% group discount for batches of 5 or more
+   - Special scholarships for meritorious students
+
+Q: What payment methods do you accept?
+A: We accept bank transfers, UPI, credit/debit cards, and EMI options
+   through select banking partners.
+
+ELIGIBILITY
+-----------
+Q: Who can enroll in your programs?
+A: Our programs are open to:
+   - Final year students and recent graduates
+   - Working professionals looking to upskill
+   - Career changers seeking new opportunities
+   - Anyone with a passion for learning
+
+Q: Are there any prerequisites?
+A: Prerequisites vary by program. Technical programs typically require
+   basic computer literacy. Specific prerequisites are listed on each
+   program's detail page.
+
+CONTACT INFORMATION
+-------------------
+- Email: support@placementservices.example.com
+- Phone: +91 98765 43210
+- WhatsApp: +91 98765 43210
+- Office Hours: Monday to Saturday, 9:00 AM to 6:00 PM IST
+- Address: 123 Training Center Road, Tech Park, Bangalore 560001
+
+SUPPORT
+-------
+For any additional questions or concerns, please don't hesitate to
+reach out to our support team. We're here to help you achieve your
+career goals!
