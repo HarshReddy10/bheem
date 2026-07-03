@@ -7,6 +7,15 @@ from logging.handlers import RotatingFileHandler
 
 from app.config import settings
 
+# Reconfigure stdout/stderr to support unicode/emojis in Windows console
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except AttributeError:
+        pass
+
+
 
 def setup_logger(name: str = "bheem") -> logging.Logger:
     """Configure and return a structured logger with rotation."""
