@@ -22,6 +22,12 @@ async def lifespan(app: FastAPI):
     logger.info(f"Environment: {settings.app_env}")
     logger.info(f"LLM Provider: {settings.llm_provider}")
 
+    # Production security check
+    if settings.app_env.lower() == "production":
+        if not settings.whatsapp_app_secret or settings.whatsapp_app_secret == "your_app_secret":
+            logger.error("CRITICAL CONFIGURATION ERROR: WHATSAPP_APP_SECRET is not configured or is a placeholder in production!")
+            raise ValueError("WHATSAPP_APP_SECRET must be set to a secure, non-default value in production.")
+
     # Database
     await init_db()
 

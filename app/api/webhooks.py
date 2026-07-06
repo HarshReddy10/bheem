@@ -5,6 +5,7 @@ POST /webhook  — Incoming message handler
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.connection import get_session
@@ -15,7 +16,7 @@ from app.utils.logger import logger
 router = APIRouter(prefix="/webhook", tags=["WhatsApp"])
 
 
-@router.get("")
+@router.get("", response_class=PlainTextResponse)
 async def verify_webhook(
     hub_mode: str = Query(None, alias="hub.mode"),
     hub_token: str = Query(None, alias="hub.verify_token"),
@@ -36,7 +37,7 @@ async def verify_webhook(
         hub_mode, hub_token, hub_challenge
     )
     if challenge:
-        return int(challenge)
+        return challenge
 
     raise HTTPException(status_code=403, detail="Verification failed")
 
@@ -59,9 +60,7 @@ async def handle_webhook(
     body = await request.body()
     signature = request.headers.get("X-Hub-Signature-256", "")
 
-    if whatsapp_client.app_secret and not whatsapp_client.verify_signature(
-        body, signature
-    ):
+    if not whatsapp_client.verify_signature(body, signature):
         logger.warning("Invalid webhook signature")
         raise HTTPException(status_code=403, detail="Invalid signature")
 

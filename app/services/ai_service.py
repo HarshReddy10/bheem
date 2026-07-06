@@ -176,6 +176,78 @@ class AntigravityProvider(LLMProvider):
             return "I'm experiencing a temporary issue. Please try again in a moment."
 
 
+class GeminiProvider(LLMProvider):
+    """Production LLM provider using the official Google Gemini GenAI SDK.
+
+    Configure via environment variables:
+    - GEMINI_API_KEY
+    - GEMINI_MODEL (e.g. gemini-2.5-flash)
+    """
+
+    def __init__(self) -> None:
+        self.api_key = settings.gemini_api_key
+        self.model = settings.gemini_model
+        self._client = None
+        if self.api_key:
+            try:
+                from google import genai
+                self._client = genai.Client(api_key=self.api_key)
+            except Exception as e:
+                logger.error(f"Failed to initialize Gemini GenAI Client: {e}")
+
+    async def generate(
+        self,
+        messages: List[Dict[str, str]],
+        system_prompt: str,
+        temperature: float = 0.3,
+        max_tokens: int = 1024,
+    ) -> str:
+        if not self.api_key or not self._client:
+            logger.error("Gemini API key not configured")
+            return (
+                "I'm sorry, the Google Gemini AI service is not configured. "
+                "Please configure GEMINI_API_KEY in your environment."
+            )
+
+        from google.genai import types
+
+        # Map conversation messages to Gemini's Contents format
+        contents = []
+        for msg in messages:
+            role = msg["role"]
+            if role == "assistant":
+                gemini_role = "model"
+            elif role == "system":
+                continue
+            else:
+                gemini_role = "user"
+
+            contents.append(
+                types.Content(
+                    role=gemini_role,
+                    parts=[types.Part.from_text(text=msg["content"])]
+                )
+            )
+
+        try:
+            config = types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            )
+
+            # Call async generation
+            response = await self._client.aio.models.generate_content(
+                model=self.model,
+                contents=contents,
+                config=config,
+            )
+            return response.text or "I'm sorry, I couldn't generate a response."
+        except Exception as e:
+            logger.error(f"Error calling Gemini API: {e}")
+            return "I'm experiencing a temporary issue. Please try again in a moment."
+
+
 # ── Factory ───────────────────────────────────────────────────────────────
 
 
@@ -186,6 +258,7 @@ def get_llm_provider() -> LLMProvider:
     providers = {
         "mock": MockProvider,
         "antigravity": AntigravityProvider,
+        "gemini": GeminiProvider,
     }
 
     provider_class = providers.get(provider_name)
@@ -197,3 +270,4 @@ def get_llm_provider() -> LLMProvider:
 
     logger.info(f"Using LLM provider: {provider_class.__name__}")
     return provider_class()
+

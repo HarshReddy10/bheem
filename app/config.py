@@ -23,10 +23,12 @@ class Settings(BaseSettings):
     whatsapp_app_secret: str = ""
 
     # LLM Provider
-    llm_provider: str = "mock"  # Options: mock, antigravity
+    llm_provider: str = "gemini"  # Options: mock, antigravity, gemini
     antigravity_api_key: str = ""
     antigravity_api_url: str = "https://api.antigravity.example.com/v1"
     antigravity_model: str = "antigravity-default"
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
 
     # RAG Settings
     knowledge_base_dir: str = "./knowledge_base"
@@ -59,6 +61,12 @@ class Settings(BaseSettings):
     def is_antigravity_configured(self) -> bool:
         """Check if Antigravity credentials are set."""
         return bool(self.antigravity_api_key)
+
+    @property
+    def is_gemini_configured(self) -> bool:
+        """Check if Gemini credentials are set."""
+        return bool(self.gemini_api_key)
+
 
 
 # Global settings singleton

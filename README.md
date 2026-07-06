@@ -142,7 +142,7 @@ curl -X POST http://localhost:8000/api/test-chat \
 | `WHATSAPP_PHONE_NUMBER_ID` | — | Meta WhatsApp Phone Number ID |
 | `WHATSAPP_ACCESS_TOKEN` | — | Meta WhatsApp Access Token |
 | `WHATSAPP_VERIFY_TOKEN` | bheem_verify_token_2024 | Webhook verification token |
-| `WHATSAPP_APP_SECRET` | — | Meta App Secret for signature verification |
+| `WHATSAPP_APP_SECRET` | — | Meta App Secret for signature verification (Mandatory in production; fails closed if unset/default) |
 | `KNOWLEDGE_BASE_DIR` | ./knowledge_base | Directory with company documents |
 | `RAG_TOP_K` | 5 | Number of chunks to retrieve |
 | `RAG_CHUNK_SIZE` | 500 | Characters per chunk |
@@ -223,18 +223,41 @@ curl -X POST http://localhost:8000/api/admin/ingest
 
 ---
 
-## 🤖 Switching to a Real LLM
+## 🤖 Configuring the LLM Provider
 
-1. Set `LLM_PROVIDER=antigravity` in `.env`
-2. Add your API credentials:
-   ```
-   ANTIGRAVITY_API_KEY=your_key
-   ANTIGRAVITY_API_URL=https://your-api-endpoint/v1
-   ANTIGRAVITY_MODEL=your-model-name
-   ```
-3. Restart the server
+Bheem supports pluggable LLM providers configured via the `LLM_PROVIDER` environment variable.
 
-The Antigravity provider uses an OpenAI-compatible chat completions API, so it works with any provider that supports this format.
+### 1. Google Gemini (Default)
+
+We use the official Google Gemini SDK. To use Gemini:
+
+1. Obtain a Gemini API Key from Google AI Studio.
+2. Set `LLM_PROVIDER=gemini` in your `.env` file.
+3. Configure your API key and model name:
+   ```env
+   GEMINI_API_KEY=your_actual_api_key
+   GEMINI_MODEL=gemini-2.5-flash
+   ```
+4. Restart the server.
+
+### 2. Antigravity (OpenAI-compatible)
+
+To use Antigravity or any OpenAI-compatible API:
+
+1. Set `LLM_PROVIDER=antigravity` in your `.env` file.
+2. Configure your API endpoint and credentials:
+   ```env
+   ANTIGRAVITY_API_KEY=your_actual_api_key
+   ANTIGRAVITY_API_URL=https://api.antigravity.example.com/v1
+   ANTIGRAVITY_MODEL=antigravity-default
+   ```
+3. Restart the server.
+
+### 3. Mock Provider (Offline Testing)
+
+To test the chatbot flow entirely offline without making API calls or spending credits:
+1. Set `LLM_PROVIDER=mock` in your `.env` file.
+2. Restart the server.
 
 ---
 

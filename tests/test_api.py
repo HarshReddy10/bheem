@@ -101,6 +101,56 @@ async def test_webhook_verify_missing_params():
 
 
 @pytest.mark.anyio
+async def test_webhook_verify_success_numeric():
+    """Webhook GET with correct params and numeric challenge should succeed."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(
+            "/webhook",
+            params={
+                "hub.mode": "subscribe",
+                "hub.verify_token": "bheem_verify_token_2024",
+                "hub.challenge": "12345678",
+            },
+        )
+    assert response.status_code == 200
+    assert response.text == "12345678"
+
+
+@pytest.mark.anyio
+async def test_webhook_verify_success_alphanumeric():
+    """Webhook GET with correct params and alphanumeric challenge should succeed."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(
+            "/webhook",
+            params={
+                "hub.mode": "subscribe",
+                "hub.verify_token": "bheem_verify_token_2024",
+                "hub.challenge": "challenge_string_abc123",
+            },
+        )
+    assert response.status_code == 200
+    assert response.text == "challenge_string_abc123"
+
+
+@pytest.mark.anyio
+async def test_webhook_verify_invalid_token():
+    """Webhook GET with invalid verify token should return 403."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get(
+            "/webhook",
+            params={
+                "hub.mode": "subscribe",
+                "hub.verify_token": "wrong_token",
+                "hub.challenge": "12345",
+            },
+        )
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
 async def test_webhook_post_empty_body():
     """Webhook POST with an empty entry should return ok."""
     transport = ASGITransport(app=app)
@@ -130,3 +180,47 @@ async def test_conversation_not_found():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/api/admin/conversations/99999")
     assert response.status_code == 404
+
+
+@pytest.mark.anyio
+async def test_production_startup_without_secret():
+    """Application should raise ValueError on startup if APP_ENV is production and WHATSAPP_APP_SECRET is unset."""
+    from app.config import settings
+    from app.main import lifespan
+
+    original_env = settings.app_env
+    original_secret = settings.whatsapp_app_secret
+
+    settings.app_env = "production"
+    settings.whatsapp_app_secret = ""
+
+    try:
+        with pytest.raises(ValueError) as exc_info:
+            async with lifespan(app):
+                pass
+        assert "WHATSAPP_APP_SECRET must be set" in str(exc_info.value)
+    finally:
+        settings.app_env = original_env
+        settings.whatsapp_app_secret = original_secret
+
+
+@pytest.mark.anyio
+async def test_production_startup_with_placeholder_secret():
+    """Application should raise ValueError on startup if APP_ENV is production and WHATSAPP_APP_SECRET is default placeholder."""
+    from app.config import settings
+    from app.main import lifespan
+
+    original_env = settings.app_env
+    original_secret = settings.whatsapp_app_secret
+
+    settings.app_env = "production"
+    settings.whatsapp_app_secret = "your_app_secret"
+
+    try:
+        with pytest.raises(ValueError) as exc_info:
+            async with lifespan(app):
+                pass
+        assert "WHATSAPP_APP_SECRET must be set" in str(exc_info.value)
+    finally:
+        settings.app_env = original_env
+        settings.whatsapp_app_secret = original_secret

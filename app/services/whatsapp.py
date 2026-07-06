@@ -57,11 +57,17 @@ class WhatsAppClient:
 
     def verify_signature(self, payload: bytes, signature: str) -> bool:
         """Verify the X-Hub-Signature-256 header from Meta."""
-        if not self.app_secret:
+        if not self.app_secret or self.app_secret == "your_app_secret":
+            if settings.app_env.lower() == "production":
+                logger.error("App secret not configured or default in production — rejecting signature")
+                return False
             logger.warning(
-                "App secret not configured — skipping signature verification"
+                "App secret not configured or default — skipping signature verification"
             )
             return True
+
+        if not signature:
+            return False
 
         expected = hmac.new(
             self.app_secret.encode("utf-8"),

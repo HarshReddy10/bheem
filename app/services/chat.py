@@ -50,6 +50,19 @@ their query but offer to help with general questions about training programs, \
 placements, fees, or contact information."""
 
 
+QUERY_REWRITE_PROMPT = """Given the conversation history and the latest user message, rewrite the user message into a standalone, context-complete search query that can be used to search a knowledge base.
+Do NOT answer the question. Just output the rewritten search query.
+If the latest message is a standalone query already and doesn't refer to prior history, output it exactly as-is.
+
+CONVERSATION HISTORY:
+{history_text}
+
+LATEST USER MESSAGE:
+{user_message}
+
+STANDALONE SEARCH QUERY:"""
+
+
 class ChatService:
     """Orchestrates the end-to-end chat flow."""
 
@@ -178,13 +191,47 @@ class ChatService:
         user_message: str,
     ) -> str:
         """Run RAG retrieval + LLM generation for a normal chat turn."""
-        # Conversation history
+        # Conversation history (includes the current message which was already persisted)
         history = await get_recent_history(
             session, conversation_id, limit=settings.max_conversation_history
         )
 
-        # RAG context
-        context = rag_service.build_context(user_message)
+        search_query = user_message
+
+        # Only attempt to rewrite if there is prior history (history has > 1 messages)
+        # and we are not using the MockProvider
+        from app.services.ai_service import MockProvider
+        prior_messages = history[:-1] if len(history) > 1 else []
+
+        if prior_messages and not isinstance(self._llm, MockProvider):
+            history_text = "\n".join(
+                f"{'User' if msg['role'] == 'user' else 'Assistant'}: {msg['content']}"
+                for msg in prior_messages
+            )
+            rewrite_system_prompt = (
+                "You are an AI assistant that rewrites user questions to be standalone "
+                "queries for a RAG search database based on the conversation history."
+            )
+            rewrite_prompt = QUERY_REWRITE_PROMPT.format(
+                history_text=history_text,
+                user_message=user_message,
+            )
+            try:
+                rewritten = await self._llm.generate(
+                    messages=[{"role": "user", "content": rewrite_prompt}],
+                    system_prompt=rewrite_system_prompt,
+                    temperature=0.1,
+                    max_tokens=100,
+                )
+                rewritten_clean = rewritten.strip().strip('"').strip("'")
+                if rewritten_clean:
+                    logger.info(f"RAG query rewritten: '{user_message}' -> '{rewritten_clean}'")
+                    search_query = rewritten_clean
+            except Exception as e:
+                logger.error(f"Failed to rewrite query: {e}. Falling back to raw message.")
+
+        # RAG context using rewritten query
+        context = rag_service.build_context(search_query)
 
         # System prompt
         name_instruction = (
@@ -196,7 +243,7 @@ class ChatService:
             context=context or "(No relevant documents found in the knowledge base)",
         )
 
-        # LLM generation
+        # LLM generation (using original history)
         response = await self._llm.generate(
             messages=history,
             system_prompt=system_prompt,
