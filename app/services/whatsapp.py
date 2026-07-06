@@ -18,7 +18,7 @@ from app.config import settings
 from app.models.schemas import WhatsAppMessage
 from app.utils.logger import logger
 
-WHATSAPP_API_BASE = "https://graph.facebook.com/v18.0"
+WHATSAPP_API_BASE = "https://graph.facebook.com/v25.0"
 
 
 class WhatsAppClient:
