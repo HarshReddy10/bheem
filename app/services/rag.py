@@ -12,6 +12,7 @@ import chromadb
 from chromadb.config import Settings as ChromaSettings
 
 from app.config import settings
+from app.company_config import company_config
 from app.utils.document_loader import chunk_text, load_all_documents
 from app.utils.logger import logger
 
@@ -80,7 +81,7 @@ class RAGService:
             logger.error("RAG service not initialized")
             return 0
 
-        doc_dir = directory or settings.knowledge_base_dir
+        doc_dir = directory or company_config.knowledge_repository_directory or settings.knowledge_repository_dir
         documents = load_all_documents(doc_dir)
 
         if not documents:

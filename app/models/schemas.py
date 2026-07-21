@@ -1,7 +1,7 @@
 """Pydantic schemas for API request/response validation."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -68,6 +68,11 @@ class TestChatRequest(BaseModel):
     message: str = Field(
         ..., description="User message text", examples=["Tell me about training programs"]
     )
+    interactive: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Simulate an interactive button/list reply",
+        examples=[{"type": "button_reply", "id": "proceed_to_payment", "title": "Proceed to Payment"}],
+    )
 
 
 class TestChatResponse(BaseModel):
@@ -79,6 +84,8 @@ class TestChatResponse(BaseModel):
     bot_response: str
     conversation_id: int
     timestamp: datetime
+    state: Optional[str] = None
+    interactive: Optional[Dict[str, Any]] = None
 
 
 # ── WhatsApp ──────────────────────────────────────────────────────────────
@@ -92,6 +99,7 @@ class WhatsAppMessage(BaseModel):
     message_type: str
     text: Optional[str] = None
     timestamp: str
+    interactive_data: Optional[Dict[str, Any]] = None
 
 
 # ── Admin ─────────────────────────────────────────────────────────────────

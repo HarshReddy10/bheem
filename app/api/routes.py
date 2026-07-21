@@ -15,7 +15,9 @@ from app.database.crud import (
     get_all_users,
     get_conversation_with_messages,
     get_stats,
+    get_user_by_phone,
 )
+from app.services.lead_profile import load_profile
 from app.models.schemas import (
     ConversationResponse,
     StatsResponse,
@@ -23,7 +25,7 @@ from app.models.schemas import (
     TestChatResponse,
     UserResponse,
 )
-from app.services.chat import chat_service
+from app.services.message_processor import message_processor
 from app.services.rag import rag_service
 from app.utils.logger import logger
 
@@ -55,14 +57,18 @@ async def test_chat(
     """Chat with the bot using a simulated phone number.
 
     This endpoint exercises the full pipeline (user management,
-    name capture, RAG, LLM) without requiring WhatsApp credentials.
+    closing agent, RAG, LLM) without requiring WhatsApp credentials.
+
+    Optionally pass an ``interactive`` field to simulate a button press:
+    ``{"type": "button_reply", "id": "proceed_to_payment", "title": "Proceed to Payment"}``
     """
     logger.info(f"Test chat from {request.phone_number}: {request.message}")
 
-    result = await chat_service.handle_message(
-        session=session,
+    result = await message_processor.process_message(
+        db=session,
         phone_number=request.phone_number,
         user_message=request.message,
+        interactive_data=request.interactive,
     )
 
     return TestChatResponse(
@@ -72,6 +78,8 @@ async def test_chat(
         bot_response=result["bot_response"],
         conversation_id=result["conversation_id"],
         timestamp=datetime.utcnow(),
+        state=result.get("state"),
+        interactive=result.get("interactive"),
     )
 
 
@@ -113,6 +121,32 @@ async def get_statistics(session: AsyncSession = Depends(get_session)):
     """Aggregate database statistics."""
     stats = await get_stats(session)
     return StatsResponse(**stats)
+
+
+# ── Admin: Lead Profile ───────────────────────────────────────────────────
+
+
+@router.get("/admin/users/{phone_number}/lead-profile")
+async def get_lead_profile(
+    phone_number: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """View the collected lead profile for a specific user."""
+    from app.company_config import company_config
+
+    user = await get_user_by_phone(session, phone_number)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    profile = load_profile(user)
+    return {
+        "phone_number": user.phone_number,
+        "user_name": user.name,
+        "lead_profile": profile.to_dict(),
+        "is_complete": profile.is_complete,
+        "missing_fields": list(profile.missing_fields.keys()),
+        "configured_fields": company_config.lead_fields,
+    }
 
 
 # ── Admin: Document Ingestion ─────────────────────────────────────────────

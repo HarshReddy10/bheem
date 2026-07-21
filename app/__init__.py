@@ -1,1 +1,1 @@
-"""Bheem — WhatsApp AI Customer Support Chatbot."""
+"""Bheem — AI Lead Qualification Platform."""

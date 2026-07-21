@@ -16,32 +16,25 @@ from app.services.rag import rag_service
 from app.utils.logger import logger
 
 
-def main() -> None:
-    """Ingest documents from the knowledge base into ChromaDB."""
+import asyncio
+
+async def async_main() -> None:
     directory = sys.argv[1] if len(sys.argv) > 1 else settings.knowledge_base_dir
-
     print(f"\n📂  Knowledge base directory: {directory}")
-    print(f"💾  ChromaDB persist path:     {settings.chroma_persist_dir}")
-    print(f"📐  Chunk size / overlap:      {settings.rag_chunk_size} / {settings.rag_chunk_overlap}")
-    print()
-
-    # Initialize
-    logger.info("Initializing RAG service...")
-    rag_service.initialize()
-
-    if not rag_service.is_initialized:
-        print("❌  Failed to initialize RAG service. Check logs for details.")
+    print("\n🔄  Rebuilding index...\n")
+    
+    from app.services.knowledge import knowledge_service
+    try:
+        report = await knowledge_service.rebuild_index(directory)
+        print(f"\n✅  Done! Ingested {report['chunks_ingested']} chunks.")
+        print(f"📊  Total documents in store:  {report['document_count']}")
+    except Exception as e:
+        print(f"❌  Failed: {e}")
         sys.exit(1)
 
-    print(f"📊  Documents already in store: {rag_service.document_count}")
-
-    # Ingest
-    print("\n🔄  Ingesting documents...\n")
-    chunks = rag_service.ingest_documents(directory)
-
-    print(f"\n✅  Done! Ingested {chunks} chunks.")
-    print(f"📊  Total documents in store:  {rag_service.document_count}")
-
+def main() -> None:
+    """Ingest documents from the knowledge base into ChromaDB."""
+    asyncio.run(async_main())
 
 if __name__ == "__main__":
     main()

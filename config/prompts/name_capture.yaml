@@ -1,0 +1,33 @@
+# ============================================================
+# Name Capture Flow Messages
+# ============================================================
+# These messages are used during the initial conversation when
+# the bot asks for the user's name.
+#
+# Template variables available:
+#   {{ name }}         — The captured user name
+#   {{ company_name }} — Company name from company.yaml
+# ============================================================
+
+# First message sent to a new user
+welcome: |
+  Welcome to {{ company_name }}! {{ welcome_emoji }}
+
+  I'm your AI assistant, here to help you with information about our offerings and services.
+
+  Before we begin, may I know your name?
+
+# Sent after the user provides a valid name
+confirmation: |
+  Nice to meet you, {{ name }}! 😊
+
+  How can I help you today? I can assist you with:
+  {% for item in menu_items %}
+  • {{ item }}
+  {% endfor %}
+
+  Just ask me anything!
+
+# Sent when the user's response doesn't look like a name
+retry: |
+  I'd love to address you by name! Could you please share just your name?

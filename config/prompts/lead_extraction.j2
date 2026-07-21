@@ -1,0 +1,16 @@
+Analyze the user's message below and extract any lead qualification information that is explicitly stated.
+
+FIELDS TO LOOK FOR:
+{{ field_descriptions }}
+
+USER MESSAGE:
+"{{ user_message }}"
+
+INSTRUCTIONS:
+- Only extract information that the user EXPLICITLY stated. Do NOT infer or guess.
+- Return a JSON object with only the fields that were found in this message.
+- If a field is not mentioned, do NOT include it in the output.
+- If no relevant information is found, return an empty JSON object: {}
+- Return ONLY valid JSON, no other text.
+
+JSON OUTPUT:

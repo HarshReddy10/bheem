@@ -7,11 +7,14 @@ class Settings(BaseSettings):
     """Application settings loaded from .env file."""
 
     # Application
-    app_name: str = "Bheem WhatsApp Chatbot"
+    app_name: str = "Bheem AI Platform"
     app_env: str = "development"
     debug: bool = True
     host: str = "0.0.0.0"
     port: int = 8000
+
+    # Company Configuration
+    company_config_dir: str = "./config"
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./data/bheem.db"
@@ -31,12 +34,18 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.5-flash"
 
     # RAG Settings
-    knowledge_base_dir: str = "./knowledge_base"
+    knowledge_repository_dir: str = "./knowledge_repository/default"
     chroma_persist_dir: str = "./data/chroma"
     embedding_model: str = "all-MiniLM-L6-v2"
     rag_top_k: int = 5
     rag_chunk_size: int = 500
     rag_chunk_overlap: int = 50
+    firecrawl_api_key: str = ""
+
+    # Razorpay
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""
 
     # Conversation
     max_conversation_history: int = 20
@@ -66,6 +75,11 @@ class Settings(BaseSettings):
     def is_gemini_configured(self) -> bool:
         """Check if Gemini credentials are set."""
         return bool(self.gemini_api_key)
+
+    @property
+    def is_razorpay_configured(self) -> bool:
+        """Check if Razorpay credentials are set."""
+        return bool(self.razorpay_key_id and self.razorpay_key_secret)
 
 
 

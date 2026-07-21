@@ -1,0 +1,228 @@
+{
+  "name": "Advanced WhatsApp Lead Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-outcome-advanced",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Lead outcome received",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [400, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "Conversation ID",
+              "value": "={{ $json.body.conversation_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "Phone Number",
+              "value": "={{ $json.body.phone_number }}",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "Outcome",
+              "value": "={{ $json.body.outcome }}",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "Product ID",
+              "value": "={{ $json.body.product_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "Timestamp",
+              "value": "={{ $json.body.timestamp }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2",
+      "name": "Extract order details",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [400, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.Outcome }}",
+              "value2": "purchased"
+            }
+          ]
+        }
+      },
+      "id": "3",
+      "name": "Purchase completed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [400, 600]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_SHEET_NAME_HERE",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "4",
+      "name": "Log completed sale",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [200, 800]
+    },
+    {
+      "parameters": {
+        "channel": "sales-alerts",
+        "text": "=🎉 New Sale! Conversation ID: {{ $json['Conversation ID'] }} | Product: {{ $json['Product ID'] }}",
+        "otherOptions": {}
+      },
+      "id": "5",
+      "name": "Notify sales team",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [200, 1000]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.yourcrm.com/v1/tags",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $json['Phone Number'] }}"
+            },
+            {
+              "name": "tag",
+              "value": "={{ $json.Outcome }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6",
+      "name": "Log abandoned lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [600, 800]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/act_YOUR_AD_ACCOUNT/customaudiences",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_hash",
+              "value": "={{ $json['Phone Number'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7",
+      "name": "Route to retargeting",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [600, 1000]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Lead outcome received": {
+      "main": [
+        [
+          {
+            "node": "Extract order details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract order details": {
+      "main": [
+        [
+          {
+            "node": "Purchase completed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Purchase completed?": {
+      "main": [
+        [
+          {
+            "node": "Log completed sale",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log abandoned lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log completed sale": {
+      "main": [
+        [
+          {
+            "node": "Notify sales team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log abandoned lead": {
+      "main": [
+        [
+          {
+            "node": "Route to retargeting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2c9d1a33-f5ab-4dbf-83c9-02eb234a95a1"
+}

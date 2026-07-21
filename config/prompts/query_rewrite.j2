@@ -1,0 +1,11 @@
+Given the conversation history and the latest user message, rewrite the user message into a standalone, context-complete search query that can be used to search a knowledge base.
+Do NOT answer the question. Just output the rewritten search query.
+If the latest message is a standalone query already and doesn't refer to prior history, output it exactly as-is.
+
+CONVERSATION HISTORY:
+{{ history_text }}
+
+LATEST USER MESSAGE:
+{{ user_message }}
+
+STANDALONE SEARCH QUERY:

@@ -1,0 +1,149 @@
+# ============================================================
+# Company Configuration — Bheem AI Lead Qualification Platform
+# ============================================================
+# This file defines all company-specific settings.
+# To onboard a new company, copy this file and edit the values.
+# No source code changes are required.
+# ============================================================
+
+company:
+  name: "Placement & Training Services"
+  short_name: "PTS"
+  description: "A career-focused technical training and placement support organisation"
+  website: "https://pts.example.com"
+  contact_email: "admissions@pts.example.com"
+  contact_phone: "+91 90085 44880"
+
+branding:
+  # The persona the bot adopts (used in the system prompt)
+  bot_persona: "a friendly, knowledgeable admissions counsellor"
+  # How the bot refers to the end user in internal prompts
+  user_term: "student"
+  # Emoji used in the welcome message
+  welcome_emoji: "👋"
+  # Industry-specific term for the company's offering
+  offering_term: "training programs"
+  # Fallback help text when bot can't answer
+  escalation_message: "I'd recommend reaching out to our admissions team for more details."
+
+# Menu items shown after name capture ("How can I help you today?")
+menu_items:
+  - "Training programs & courses"
+  - "Placement process & opportunities"
+  - "Fees & payment information"
+  - "General inquiries"
+
+# ── Lead Profile Fields ──────────────────────────────────────
+# Define what information to passively collect from conversations.
+# Each field has:
+#   name:        Internal field key (used in JSON storage)
+#   description: Human-readable description (used in LLM extraction prompt)
+#   example:     Example value (used in documentation)
+lead_fields:
+  - name: "education"
+    description: "Highest educational qualification (e.g., B.Tech CSE, MBA, 12th pass)"
+    example: "B.Tech Computer Science"
+
+  - name: "course_interest"
+    description: "Which training course or program they are interested in"
+    example: "Full Stack Development"
+
+  - name: "career_goals"
+    description: "What role, industry, or career outcome they are aiming for"
+    example: "Frontend developer at a product company"
+
+  - name: "timeline"
+    description: "When they want to start or complete the program (e.g., next month, ASAP)"
+    example: "Starting next month"
+
+  - name: "motivation"
+    description: "Why they are looking for training or placement services"
+    example: "Career switch from mechanical engineering"
+
+  - name: "previous_experience"
+    description: "Relevant work experience or background"
+    example: "2 years as QA tester"
+
+  - name: "budget"
+    description: "Budget constraints or expectations for the program"
+    example: "Under $1000"
+
+  - name: "preferred_learning_mode"
+    description: "Online, offline, hybrid, weekend batches, etc."
+    example: "Weekend online only"
+
+  - name: "location"
+    description: "City or physical location of the user"
+    example: "Bangalore"
+
+  - name: "decision_maker"
+    description: "Who makes the financial or final decision (e.g., self, parent)"
+    example: "Parents will pay"
+
+  - name: "current_status"
+    description: "Current employment or study status"
+    example: "Working professional"
+
+  - name: "email"
+    description: "Email address for contact"
+    example: "user@example.com"
+
+# ── Knowledge Repository ─────────────────────────────────────
+knowledge_repository:
+  # Base directory for this specific client/tenant
+  directory: "./knowledge_repository/default"
+  
+  ingestion:
+    firecrawl:
+      max_depth: 2
+      limit: 50
+      includes: ["/*"]
+      excludes: ["/admin", "/login"]
+
+# ── Purchasable Courses ──────────────────────────────────────
+# Each course must have: id, name, aliases, price_paise, currency,
+# duration, short_description, is_available.
+# Prices are in paise (1 INR = 100 paise).
+# PLACEHOLDER prices — set actual prices before going live.
+courses:
+  - id: "course_data_science"
+    name: "Data Science Programme"
+    aliases: ["data science", "DS", "data analytics", "machine learning", "ML"]
+    price_paise: 4000000  # PLACEHOLDER — ₹40,000
+    currency: "INR"
+    duration: "6 months"
+    short_description: "Comprehensive data science training covering Python, statistics, machine learning, and real-world projects."
+    is_available: true
+
+  - id: "course_full_stack"
+    name: "Full Stack Development"
+    aliases: ["full stack", "fullstack", "web development", "MERN", "web dev"]
+    price_paise: 3500000  # PLACEHOLDER — ₹35,000
+    currency: "INR"
+    duration: "5 months"
+    short_description: "End-to-end web development with HTML, CSS, JavaScript, React, Node.js, and databases."
+    is_available: true
+
+  - id: "course_career_training"
+    name: "Career Training"
+    aliases: ["career", "placement training", "interview prep", "resume"]
+    price_paise: 1500000  # PLACEHOLDER — ₹15,000
+    currency: "INR"
+    duration: "2 months"
+    short_description: "Resume building, interview preparation, and career counselling to advance your goals."
+    is_available: true
+
+  - id: "course_test_prep"
+    name: "Test Preparation"
+    aliases: ["test prep", "exam prep", "IELTS", "GRE", "TOEFL", "competitive exam"]
+    price_paise: 2000000  # PLACEHOLDER — ₹20,000
+    currency: "INR"
+    duration: "3 months"
+    short_description: "Expert-guided preparation for competitive exams and international test scores."
+    is_available: true
+
+# ── Integrations ─────────────────────────────────────────────
+integrations:
+  n8n:
+    # URL to the n8n webhook that will receive all domain events
+    webhook_url: "http://n8n:5678/webhook/bheem-events"

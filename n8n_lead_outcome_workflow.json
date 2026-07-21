@@ -1,0 +1,145 @@
+{
+  "name": "Closing Agent — Lead Outcome Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-outcome",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "019d65bd-0797-4ab2-8e79-50c2262d1c19",
+      "name": "Lead Outcome Received",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        340
+      ],
+      "webhookId": "91e6005c-e5ff-4ab5-ab2d-0b1a03975a5e"
+    },
+    {
+      "parameters": {
+        "content": "## Closing Agent Sync\n\nTriggered automatically when a WhatsApp sale completes or a lead drops off mid-checkout.",
+        "height": 160,
+        "width": 380,
+        "color": 6
+      },
+      "id": "b9095655-22af-4034-ba09-5c4e976cde5e",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0e9be813-f43b-4892-95f0-6edc4a5c9f53",
+              "name": "Conversation ID",
+              "value": "={{ $json.body.conversation_id }}",
+              "type": "string"
+            },
+            {
+              "id": "18f9da07-b2fb-4475-be86-444737dd0a56",
+              "name": "Phone Number",
+              "value": "={{ $json.body.phone_number }}",
+              "type": "string"
+            },
+            {
+              "id": "4af010fa-7fb3-4811-9a7c-f173f6b4d3b4",
+              "name": "Outcome",
+              "value": "={{ $json.body.outcome }}",
+              "type": "string"
+            },
+            {
+              "id": "a9a2a95e-18be-4de2-ba53-dd82500db620",
+              "name": "Product ID",
+              "value": "={{ $json.body.product_id }}",
+              "type": "string"
+            },
+            {
+              "id": "9d90161a-0a88-46c9-8d75-ec9b935cf18b",
+              "name": "Timestamp",
+              "value": "={{ $json.body.timestamp }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ea43fb1b-5346-4e00-8803-b0fc55df0827",
+      "name": "Format Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        460,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_SHEET_NAME_HERE",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "0f6d0f86-d24c-42aa-b80c-033107fc3f31",
+      "name": "Log to Sales Tracker",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        700,
+        340
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_CREDENTIAL_ID_HERE",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Lead Outcome Received": {
+      "main": [
+        [
+          {
+            "node": "Format Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Data": {
+      "main": [
+        [
+          {
+            "node": "Log to Sales Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "61a298be-8c76-47a3-b467-33634a34b223"
+}

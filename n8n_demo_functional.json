@@ -1,0 +1,410 @@
+{
+  "name": "Demo WhatsApp AI Closing Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Workflow 1: Customer Conversation\nState machine loop with AI fallback.",
+        "height": 1300,
+        "width": 600,
+        "color": 1
+      },
+      "id": "s1",
+      "name": "Sticky Note 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-50, -100]
+    },
+    {
+      "parameters": {
+        "path": "customer-message",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "f1-1",
+      "name": "Customer Message Received",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract incoming message from WhatsApp payload\nlet messageText = '';\nlet fromNumber = '';\n\nif ( $input.first().json.body.entry ) {\n  const entry = $input.first().json.body.entry[0];\n  if (entry.changes && entry.changes[0].value.messages) {\n    const msg = entry.changes[0].value.messages[0];\n    fromNumber = msg.from;\n    if (msg.type === 'text') {\n      messageText = msg.text.body;\n    } else if (msg.type === 'interactive') {\n      if (msg.interactive.type === 'button_reply') {\n        messageText = msg.interactive.button_reply.id;\n      } else if (msg.interactive.type === 'list_reply') {\n        messageText = msg.interactive.list_reply.id;\n      }\n    }\n  }\n}\n\nreturn {\n  message: messageText,\n  from: fromNumber\n};"
+      },
+      "id": "f1-2",
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "f1-4",
+      "name": "Is Valid Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=REPLACE_WITH_N8N_CREDENTIAL",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "={{ [ { \"parts\": [ { \"text\": \"You are a helpful sales assistant. The user said: '\" + $json.message + \"'. Reply concisely and helpfully.\" } ] } ] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1-7",
+      "name": "💬 Generate Intelligent Recommendation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [200, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract AI response\nconst aiResponse = $input.first().json.candidates[0].content.parts[0].text;\nreturn {\n  reply: aiResponse,\n  from: $('Extract Message').first().json.from\n};"
+      },
+      "id": "f1-9",
+      "name": "Format Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [200, 800]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v19.0/1167151956490306/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer REPLACE_WITH_N8N_CREDENTIAL"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "to",
+              "value": "={{ $json.from }}"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": "={{ { \"body\": $json.reply } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1-10",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [200, 1000]
+    },
+    {
+      "parameters": {
+        "content": "## Workflow 2: Payment\nRazorpay order creation and webhook verification.",
+        "height": 1000,
+        "width": 400,
+        "color": 6
+      },
+      "id": "s2",
+      "name": "Sticky Note 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [750, -100]
+    },
+    {
+      "parameters": {
+        "path": "create-order",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "f2-1",
+      "name": "Customer chooses product",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [800, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.razorpay.com/v1/payment_links",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Basic cnpwX3Rlc3RfVEZ1NjM0SDU5TG1BaEY6Vm1tSXM0WmpoaXdxOE9jOHg2UUh5ckdF"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "amount", "value": "299900" },
+            { "name": "currency", "value": "INR" },
+            { "name": "description", "value": "Demo Product" },
+            { "name": "customer", "value": "={{ { \"name\": \"Demo Customer\", \"contact\": \"9999999999\" } }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f2-2",
+      "name": "Create Razorpay Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "path": "razorpay-webhook",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "f2-3",
+      "name": "Razorpay Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [800, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verify signature placeholder for demo\nreturn {\n  verified: true,\n  payload: $input.all()\n};"
+      },
+      "id": "f2-4",
+      "name": "Verify Payment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [800, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Update Order Status\nreturn {\n  status: \"completed\",\n  order_id: \"demo_order_123\"\n};"
+      },
+      "id": "f2-5",
+      "name": "Update Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [800, 800]
+    },
+    {
+      "parameters": {
+        "content": "## Workflow 3: Automation\nPost-purchase CRM routing and notifications.",
+        "height": 900,
+        "width": 600,
+        "color": 4
+      },
+      "id": "s3",
+      "name": "Sticky Note 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1550, -100]
+    },
+    {
+      "parameters": {
+        "path": "lead-outcome",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "f3-1",
+      "name": "Lead Outcome Received",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [1600, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "purchased",
+              "value2": "purchased"
+            }
+          ]
+        }
+      },
+      "id": "f3-2",
+      "name": "Purchase Completed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1600, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  status: \"Sale Logged Successfully\",\n  customer: \"Demo Customer\",\n  product: \"Demo Product\",\n  amount: 2999,\n  logged: true\n};"
+      },
+      "id": "f3-4",
+      "name": "Mock Sale Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1600, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  status: \"Sales Team Notified\",\n  method: \"Mock Notification\",\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "f3-5",
+      "name": "Mock Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1600, 600]
+    }
+  ],
+  "connections": {
+    "Customer Message Received": {
+      "main": [
+        [
+          {
+            "node": "Extract Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message": {
+      "main": [
+        [
+          {
+            "node": "Is Valid Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid Message?": {
+      "main": [
+        [
+          {
+            "node": "💬 Generate Intelligent Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💬 Generate Intelligent Recommendation": {
+      "main": [
+        [
+          {
+            "node": "Format Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reply": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer chooses product": {
+      "main": [
+        [
+          {
+            "node": "Create Razorpay Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Razorpay Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Payment": {
+      "main": [
+        [
+          {
+            "node": "Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Outcome Received": {
+      "main": [
+        [
+          {
+            "node": "Purchase Completed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Purchase Completed?": {
+      "main": [
+        [
+          {
+            "node": "Mock Sale Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Sale Log": {
+      "main": [
+        [
+          {
+            "node": "Mock Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

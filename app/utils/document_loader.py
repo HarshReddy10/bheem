@@ -138,7 +138,7 @@ def load_all_documents(directory: str) -> List[dict]:
     """
     dir_path = Path(directory)
     if not dir_path.exists():
-        logger.warning(f"Knowledge base directory not found: {directory}")
+        logger.warning(f"Knowledge repository directory not found: {directory}")
         return []
 
     supported_extensions = {".txt", ".md", ".pdf", ".docx"}

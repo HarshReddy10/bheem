@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.config import settings
 from app.main import app
 
 
@@ -109,7 +110,7 @@ async def test_webhook_verify_success_numeric():
             "/webhook",
             params={
                 "hub.mode": "subscribe",
-                "hub.verify_token": "bheem_verify_token_2024",
+                "hub.verify_token": settings.whatsapp_verify_token,
                 "hub.challenge": "12345678",
             },
         )
@@ -126,7 +127,7 @@ async def test_webhook_verify_success_alphanumeric():
             "/webhook",
             params={
                 "hub.mode": "subscribe",
-                "hub.verify_token": "bheem_verify_token_2024",
+                "hub.verify_token": settings.whatsapp_verify_token,
                 "hub.challenge": "challenge_string_abc123",
             },
         )

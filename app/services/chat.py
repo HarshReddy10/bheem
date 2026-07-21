@@ -6,12 +6,17 @@ Ties together:
 - RAG retrieval (knowledge base context)
 - LLM generation (system prompt + history + context)
 - Message persistence (every exchange is logged)
+- Lead intelligence (passive profile extraction)
+
+All company-specific content (prompts, messages, branding) is loaded
+from the company configuration layer — no business logic is hardcoded.
 """
 
 from typing import Dict, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.company_config import company_config
 from app.config import settings
 from app.database.crud import (
     add_message,
@@ -21,46 +26,13 @@ from app.database.crud import (
     update_user_name,
 )
 from app.services.ai_service import LLMProvider, get_llm_provider
+from app.services.lead_profile import (
+    build_profile_prompt_section,
+    load_profile,
+    save_profile,
+)
 from app.services.rag import rag_service
 from app.utils.logger import logger
-
-# ── System Prompt ─────────────────────────────────────────────────────────
-
-SYSTEM_PROMPT_TEMPLATE = """You are a helpful, professional, and friendly AI customer support assistant \
-for a Placement & Training Services company.
-
-CRITICAL RULES:
-1. ONLY answer questions using the provided context from the company's knowledge base.
-2. If the information is NOT in the context, politely say: \
-"I don't have that specific information in our records. \
-I'd recommend contacting our team directly for the most accurate details."
-3. NEVER make up or hallucinate information that is not in the context.
-4. Be concise, clear, and helpful in your responses.
-5. Use a warm, professional tone.
-6. If the user greets you, greet them back warmly.
-
-{name_instruction}
-
-KNOWLEDGE BASE CONTEXT:
-{context}
-
-If the context above is empty, it means no relevant information was found. \
-In that case, let the user know you don't have specific information about \
-their query but offer to help with general questions about training programs, \
-placements, fees, or contact information."""
-
-
-QUERY_REWRITE_PROMPT = """Given the conversation history and the latest user message, rewrite the user message into a standalone, context-complete search query that can be used to search a knowledge base.
-Do NOT answer the question. Just output the rewritten search query.
-If the latest message is a standalone query already and doesn't refer to prior history, output it exactly as-is.
-
-CONVERSATION HISTORY:
-{history_text}
-
-LATEST USER MESSAGE:
-{user_message}
-
-STANDALONE SEARCH QUERY:"""
 
 
 class ChatService:
@@ -117,6 +89,18 @@ class ChatService:
 
         logger.info(f"Response to {phone_number}: {response_text[:100]}...")
 
+        # 6. Dispatch background lead extraction
+        from app.services.worker import background_worker
+        from app.services.ai_service import MockProvider
+        
+        if not isinstance(self._llm, MockProvider):
+            background_worker.enqueue(
+                run_background_extraction, 
+                user.id, 
+                conversation.id, 
+                self._llm
+            )
+
         return {
             "phone_number": phone_number,
             "user_name": user.name,
@@ -153,33 +137,19 @@ class ChatService:
 
         if not already_asked:
             # First message — greet & ask
-            return (
-                "Welcome to our Placement & Training Services! 👋\n\n"
-                "I'm your AI assistant, here to help you with information "
-                "about our training programs, placement services, and more.\n\n"
-                "Before we begin, may I know your name?"
-            )
+            return company_config.render_name_capture_message("welcome")
 
         # User replied — treat it as their name
         name = user_message.strip().title()
 
         if len(name) <= 50 and len(name.split()) <= 4 and "?" not in name:
             await update_user_name(session, user, name)
-            return (
-                f"Nice to meet you, {name}! 😊\n\n"
-                "How can I help you today? I can assist you with:\n"
-                "• Training programs & courses\n"
-                "• Placement process & opportunities\n"
-                "• Fees & payment information\n"
-                "• General inquiries\n\n"
-                "Just ask me anything!"
+            return company_config.render_name_capture_message(
+                "confirmation", name=name
             )
 
         # Doesn't look like a name — ask again gently
-        return (
-            "I'd love to address you by name! "
-            "Could you please share just your name?"
-        )
+        return company_config.render_name_capture_message("retry")
 
     # ── Normal Chat (with RAG) ────────────────────────────────────────
 
@@ -198,8 +168,6 @@ class ChatService:
 
         search_query = user_message
 
-        # Only attempt to rewrite if there is prior history (history has > 1 messages)
-        # and we are not using the MockProvider
         from app.services.ai_service import MockProvider
         prior_messages = history[:-1] if len(history) > 1 else []
 
@@ -212,7 +180,7 @@ class ChatService:
                 "You are an AI assistant that rewrites user questions to be standalone "
                 "queries for a RAG search database based on the conversation history."
             )
-            rewrite_prompt = QUERY_REWRITE_PROMPT.format(
+            rewrite_prompt = company_config.render_query_rewrite_prompt(
                 history_text=history_text,
                 user_message=user_message,
             )
@@ -230,16 +198,22 @@ class ChatService:
             except Exception as e:
                 logger.error(f"Failed to rewrite query: {e}. Falling back to raw message.")
 
-        # RAG context using rewritten query
+        profile = load_profile(user)
+
+        # ── RAG context using rewritten query ─────────────────────────
         context = rag_service.build_context(search_query)
 
-        # System prompt
+        # ── System prompt (assembled from config templates) ───────────
         name_instruction = (
             f"The user's name is {user.name}. "
             "Address them by name occasionally to keep the conversation personal."
         )
-        system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+        lead_profile_section = build_profile_prompt_section(
+            profile, user_name=user.name
+        )
+        system_prompt = company_config.render_system_prompt(
             name_instruction=name_instruction,
+            lead_profile_section=lead_profile_section,
             context=context or "(No relevant documents found in the knowledge base)",
         )
 
@@ -250,6 +224,61 @@ class ChatService:
         )
 
         return response
+
+
+# ── Background Intelligence ──────────────────────────────────────────
+
+async def run_background_extraction(user_id: int, conversation_id: int, llm: LLMProvider):
+    """Run lead extraction in the background using the latest context."""
+    from app.database.connection import async_session_factory
+    from app.database.crud import get_recent_history
+    from app.lead_intelligence.extractor import extract_lead_info
+    from app.lead_intelligence.merger import merge_extracted_fields
+    from sqlalchemy import select
+    from app.models.database import User
+
+    async with async_session_factory() as session:
+        # Load user directly to avoid circular import of get_user_by_id
+        result = await session.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            return
+
+        profile = load_profile(user)
+        missing = profile.missing_fields
+        if not missing:
+            return
+
+        history = await get_recent_history(session, conversation_id, limit=6)
+        history_text = "\n".join(
+            f"{'User' if msg['role'] == 'user' else 'Assistant'}: {msg['content']}"
+            for msg in history
+        )
+
+        extracted = await extract_lead_info(llm, history_text, missing, conversation_id)
+        if extracted:
+            profile._data = merge_extracted_fields(profile._data, extracted)
+            await save_profile(session, user, profile)
+            
+            # Emit Domain Events
+            from app.services.events import event_bus, DomainEvent
+            
+            payload = {
+                "phone_number": user.phone_number,
+                "name": user.name,
+                "profile": profile.to_dict()
+            }
+            
+            event_bus.publish(DomainEvent(
+                event_type="LeadUpdated",
+                payload=payload
+            ))
+            
+            if profile.is_complete:
+                event_bus.publish(DomainEvent(
+                    event_type="LeadQualified",
+                    payload=payload
+                ))
 
 
 # Singleton instance

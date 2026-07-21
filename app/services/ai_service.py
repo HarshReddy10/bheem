@@ -39,7 +39,19 @@ class MockProvider(LLMProvider):
 
     Returns plausible canned responses so you can verify the full
     pipeline end-to-end before connecting a real LLM.
+    Responses use company config for company-aware defaults.
     """
+
+    def _get_company_name(self) -> str:
+        """Lazily load company name to avoid import-time init issues."""
+        try:
+            from app.company_config import company_config
+
+            if company_config.is_initialized:
+                return company_config.company_name
+        except Exception:
+            pass
+        return "our company"
 
     async def generate(
         self,
@@ -52,37 +64,40 @@ class MockProvider(LLMProvider):
             return "Hello! How can I help you today?"
 
         last_message = messages[-1].get("content", "").lower()
+        company = self._get_company_name()
 
         # Greetings
         if any(w in last_message for w in ("hi", "hello", "hey", "greetings")):
             return (
-                "Hello! Welcome to our Placement & Training Services. 😊\n\n"
+                f"Hello! Welcome to {company}. 😊\n\n"
                 "How can I assist you today? I can help with information about "
-                "our training programs, placement process, fees, and more."
+                "our offerings, services, pricing, and more."
             )
 
-        # Training
-        if any(w in last_message for w in ("training", "course", "program", "learn")):
+        # Products / Services
+        if any(w in last_message for w in ("training", "course", "program", "learn",
+                                           "product", "service", "offering")):
             return (
-                "We offer various training programs designed to enhance your skills "
-                "and improve your placement prospects. Could you tell me which area "
-                "you're interested in? I'll check our knowledge base for details."
+                "We offer a variety of options designed to meet your needs. "
+                "Could you tell me which area you're interested in? "
+                "I'll check our knowledge base for details."
             )
 
-        # Placement
-        if any(w in last_message for w in ("placement", "job", "career", "hire")):
+        # Outcomes / Results
+        if any(w in last_message for w in ("placement", "job", "career", "hire",
+                                           "result", "outcome")):
             return (
-                "Our placement services connect trained candidates with top employers. "
-                "We have a strong track record of successful placements. Would you like "
-                "to know more about our placement process, eligibility, or success rates?"
+                "We're committed to delivering great outcomes. "
+                "Would you like to know more about our track record, "
+                "process, or success stories?"
             )
 
-        # Fees
+        # Pricing
         if any(w in last_message for w in ("fee", "cost", "price", "payment")):
             return (
-                "For detailed fee information, I'd recommend checking with our "
-                "admissions team. I can share general information from our documents. "
-                "Is there a specific program you're asking about?"
+                "For detailed pricing information, I'd recommend checking with our "
+                "team. I can share general information from our documents. "
+                "Is there something specific you're asking about?"
             )
 
         # Contact
@@ -103,8 +118,7 @@ class MockProvider(LLMProvider):
         # Default
         return (
             "Thank you for your question. Based on our available information, "
-            "I'd be happy to help you with queries about our training programs, "
-            "placement services, fees, and general information. Could you please "
+            "I'd be happy to help you learn more. Could you please "
             "be more specific about what you'd like to know?"
         )
 
